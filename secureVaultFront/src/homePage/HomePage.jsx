@@ -6,7 +6,8 @@ export default function HomePage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
-    window.location.href = "/"; // simple redirect (you can replace with router later)
+    localStorage.removeItem("salt");
+    window.location.href = "/";
   };
 
   return (

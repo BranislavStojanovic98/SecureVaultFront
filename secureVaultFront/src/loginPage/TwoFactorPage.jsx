@@ -21,11 +21,12 @@ export default function TwoFactorPage() {
 
       const data = await res.json();
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      if (data.tempToken) {
+        localStorage.setItem("tempToken", data.tempToken);
         localStorage.removeItem("tempToken");
+        localStorage.setItem("salt", data.salt);
 
-        navigate("/home");
+        navigate("/unlockVault");
       } else {
         setMessage("Invalid code");
       }

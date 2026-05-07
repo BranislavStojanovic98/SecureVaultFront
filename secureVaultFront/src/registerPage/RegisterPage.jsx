@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { encryptPrivateKey } from "../crypto/VaultCrypto";
+import { deriveMasterKey } from "../crypto/DeriveMasterKey";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -8,6 +10,7 @@ export default function RegisterPage() {
     username: "",
     email: "",
     passwordHash: "",
+    masterPassword: "",
     role: "DEVELOPER",
   });
 
@@ -23,28 +26,93 @@ export default function RegisterPage() {
     });
   };
 
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    bytes.forEach((b) => (binary += String.fromCharCode(b)));
+    return btoa(binary);
+  }
+
+  function arrayBufferToPem(buffer) {
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const formatted = base64.match(/.{1,64}/g).join("\n");
+
+    return `-----BEGIN PRIVATE KEY-----\n${formatted}\n-----END PRIVATE KEY-----`;
+  }
+
+  function downloadFile(data, filename) {
+    const blob = new Blob([data], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function generateSalt() {
+    return crypto.getRandomValues(new Uint8Array(16));
+  }
+
+  async function generateKeyPairs() {
+    return await crypto.subtle.generateKey(
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: "SHA-256",
+      },
+      true,
+      ["sign", "verify"]
+    );
+  }
+
   const handleRegister = async () => {
     setLoading(true);
     setMessage("");
 
     if (
-        isBlank(form.username) ||
-        isBlank(form.email) ||
-        isBlank(form.passwordHash) ||
-        isBlank(form.role)
+      isBlank(form.username) ||
+      isBlank(form.email) ||
+      isBlank(form.passwordHash) ||
+      isBlank(form.masterPassword) ||
+      isBlank(form.role)
     ) {
-        setLoading(false);
-        setMessage("All fields are required");
-        return;
+      setLoading(false);
+      setMessage("All fields are required");
+      return;
     }
 
     if (!form.email.includes("@")) {
-        setLoading(false);
-        setMessage("Invalid email format");
-        return;
+      setLoading(false);
+      setMessage("Invalid email format");
+      return;
     }
 
     try {
+      const keyPair = await generateKeyPairs();
+
+      const publicKey = await crypto.subtle.exportKey(
+        "spki",
+        keyPair.publicKey
+      );
+
+      const privateKey = await crypto.subtle.exportKey(
+        "pkcs8",
+        keyPair.privateKey
+      );
+
+      const salt = generateSalt();
+      const saltBase64 = arrayBufferToBase64(salt);
+
+      const publicKeyBase64 = arrayBufferToBase64(publicKey);
+
       const res = await fetch("http://localhost:8080/user/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,6 +121,8 @@ export default function RegisterPage() {
           email: form.email,
           passwordHash: form.passwordHash,
           role: form.role,
+          publicKey: publicKeyBase64,
+          salt: saltBase64,
           active: true,
           frozen: false,
         }),
@@ -63,15 +133,33 @@ export default function RegisterPage() {
       if (data.totpQrCode) {
         localStorage.setItem("qrCode", data.totpQrCode);
         localStorage.setItem("username", data.username);
+        localStorage.setItem("salt", saltBase64);
+
+        const derivedKey = await deriveMasterKey(
+          form.masterPassword,
+          salt
+        );
+
+        const privateKeyPem = arrayBufferToPem(privateKey);
+
+        const vault = await encryptPrivateKey(
+          privateKeyPem,
+          derivedKey
+        );
+
+        downloadFile(
+          JSON.stringify(vault),
+          `${data.username}-private-key.vault`
+        );
 
         navigate("/setup-2fa");
         return;
       }
 
       setMessage(data.message || "Registered successfully");
-
     } catch (err) {
-      setMessage("Registration failed", err);
+      console.error(err);
+      setMessage(err.message || "Registration failed");
     }
 
     setLoading(false);
@@ -88,7 +176,6 @@ export default function RegisterPage() {
           value={form.username}
           onChange={handleChange}
           className="auth-input"
-          required
         />
 
         <input
@@ -97,7 +184,6 @@ export default function RegisterPage() {
           value={form.email}
           onChange={handleChange}
           className="auth-input"
-          required
         />
 
         <input
@@ -107,7 +193,15 @@ export default function RegisterPage() {
           value={form.passwordHash}
           onChange={handleChange}
           className="auth-input"
-          required
+        />
+
+        <input
+          name="masterPassword"
+          type="password"
+          placeholder="Master Password"
+          value={form.masterPassword}
+          onChange={handleChange}
+          className="auth-input"
         />
 
         <select
@@ -130,11 +224,6 @@ export default function RegisterPage() {
         </button>
 
         {message && <p className="auth-message">{message}</p>}
-
-        <p className="auth-toggle">
-          Already have an account?{" "}
-          <span onClick={() => navigate("/")}>Login</span>
-        </p>
       </div>
     </div>
   );

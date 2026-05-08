@@ -75,3 +75,18 @@ html, body {
 .logout-btn:hover {
   background: #dc2626;
 }
+
+.create-btn {
+  margin-top: 15px;
+  padding: 10px;
+  width: 100%;
+  background: #2d7ff9;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.create-btn:hover {
+  background: #1d5fd1;
+}

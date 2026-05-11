@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
+import { deriveMasterKey } from "../crypto/DeriveMasterKey";
+import { derivePasswordVerifier } from "../crypto/AuthService";
 
-function arrayBufferToBase64(buffer) {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  bytes.forEach((b) => (binary += String.fromCharCode(b)));
-  return window.btoa(binary);
-}
-
-function encode(text) {
-  return new TextEncoder().encode(text);
+function base64FromBuffer(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
 }
 
 export default function CreateSecretPage() {
@@ -17,21 +12,20 @@ export default function CreateSecretPage() {
   const [selectedTeam, setSelectedTeam] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
 
   const userId = localStorage.getItem("userId");
 
-  // 🔽 Load teams user belongs to
   useEffect(() => {
     async function fetchTeams() {
       try {
-        const res = await fetch("http://localhost:8080/team/my", {
+        const res = await fetch("http://localhost:8080/teamMember/my", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
 
         const data = await res.json();
-        console.log(localStorage.getItem("token"));
         setTeams(data);
       } catch (err) {
         console.error("Failed to load teams", err);
@@ -41,26 +35,18 @@ export default function CreateSecretPage() {
     fetchTeams();
   }, []);
 
-  async function generateAESKey() {
-    return await window.crypto.subtle.generateKey(
-      { name: "AES-GCM", length: 256 },
-      true,
-      ["encrypt", "decrypt"]
-    );
-  }
-
   async function encryptSecret(aesKey, plaintext) {
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
 
-    const encrypted = await window.crypto.subtle.encrypt(
+    const encrypted = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv },
       aesKey,
-      encode(plaintext)
+      new TextEncoder().encode(plaintext)
     );
 
     return {
-      encryptedBlob: arrayBufferToBase64(encrypted),
-      iv: arrayBufferToBase64(iv),
+      encryptedBlob: base64FromBuffer(encrypted),
+      iv: base64FromBuffer(iv),
     };
   }
 
@@ -69,13 +55,46 @@ export default function CreateSecretPage() {
     setStatus("");
 
     try {
-      if (!selectedTeam) {
-        throw new Error("Please select a team");
+      if (!selectedTeam) throw new Error("Please select a team");
+      if (!masterPassword) throw new Error("Master password is required");
+
+      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+        method: "POST",
+        headers: { "Content-Type" : "application/json"},
+        body: JSON.stringify({
+            username: localStorage.getItem("username"),
+        }),
+      });
+
+      const saltData = await saltRes.json();
+
+      const salt = Uint8Array.from(atob(saltData.salt), 
+          (c) => c.charCodeAt(0)
+        );
+
+      if (!saltData) throw new Error("Missing salt");
+
+      const verifier = await derivePasswordVerifier(masterPassword, salt);
+
+      const verifyRes = await fetch("http://localhost:8080/auth/verify-master", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ 
+          username: localStorage.getItem("username"),
+          password: verifier }),
+      });
+
+      if (!verifyRes.ok) {
+        throw new Error("Invalid master password");
       }
 
-      const aesKey = await generateAESKey();
+      const aesKey = await deriveMasterKey(masterPassword, salt);
+
       const { encryptedBlob, iv } = await encryptSecret(aesKey, content);
-      
+
       const res = await fetch("http://localhost:8080/secret/create", {
         method: "POST",
         headers: {
@@ -95,6 +114,7 @@ export default function CreateSecretPage() {
       setStatus("Secret created successfully!");
       setContent("");
     } catch (err) {
+      console.error(err);
       setStatus(err.message);
     } finally {
       setLoading(false);
@@ -105,7 +125,6 @@ export default function CreateSecretPage() {
     <div style={{ maxWidth: 600, margin: "40px auto" }}>
       <h2>Create Secret</h2>
 
-      {/* TEAM SELECT */}
       <select
         value={selectedTeam}
         onChange={(e) => setSelectedTeam(e.target.value)}
@@ -113,11 +132,19 @@ export default function CreateSecretPage() {
       >
         <option value="">Select team</option>
         {teams.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
+          <option key={t.teamId} value={t.teamId}>
+            {t.teamId}
           </option>
         ))}
       </select>
+
+      <input
+        type="password"
+        placeholder="Master Password"
+        value={masterPassword}
+        onChange={(e) => setMasterPassword(e.target.value)}
+        style={{ width: "100%", padding: 10, marginBottom: 10 }}
+      />
 
       <textarea
         rows={8}

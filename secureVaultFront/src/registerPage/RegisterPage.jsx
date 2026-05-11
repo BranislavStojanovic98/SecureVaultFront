@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { encryptPrivateKey } from "../crypto/VaultCrypto";
+import { encryptData } from "../crypto/VaultCrypto";
 import { deriveMasterKey } from "../crypto/DeriveMasterKey";
+import { generatePasswordVerifier } from "../crypto/AuthService";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -9,7 +10,6 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     username: "",
     email: "",
-    passwordHash: "",
     masterPassword: "",
     role: "DEVELOPER",
   });
@@ -63,13 +63,13 @@ export default function RegisterPage() {
   async function generateKeyPairs() {
     return await crypto.subtle.generateKey(
       {
-        name: "RSASSA-PKCS1-v1_5",
+        name: "RSA-OAEP",
         modulusLength: 2048,
         publicExponent: new Uint8Array([1, 0, 1]),
         hash: "SHA-256",
       },
       true,
-      ["sign", "verify"]
+      ["encrypt", "decrypt"]
     );
   }
 
@@ -80,7 +80,6 @@ export default function RegisterPage() {
     if (
       isBlank(form.username) ||
       isBlank(form.email) ||
-      isBlank(form.passwordHash) ||
       isBlank(form.masterPassword) ||
       isBlank(form.role)
     ) {
@@ -111,6 +110,10 @@ export default function RegisterPage() {
       const salt = generateSalt();
       const saltBase64 = arrayBufferToBase64(salt);
 
+      await deriveMasterKey(form.masterPassword, salt);
+
+      const passwordVerifier = await generatePasswordVerifier(form.masterPassword, salt);
+
       const publicKeyBase64 = arrayBufferToBase64(publicKey);
 
       const res = await fetch("http://localhost:8080/user/create", {
@@ -119,7 +122,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           username: form.username,
           email: form.email,
-          passwordHash: form.passwordHash,
+          passwordHash: passwordVerifier,
           role: form.role,
           publicKey: publicKeyBase64,
           salt: saltBase64,
@@ -133,7 +136,7 @@ export default function RegisterPage() {
       if (data.totpQrCode) {
         localStorage.setItem("qrCode", data.totpQrCode);
         localStorage.setItem("username", data.username);
-        localStorage.setItem("salt", saltBase64);
+        //localStorage.setItem("salt", saltBase64);
 
         const derivedKey = await deriveMasterKey(
           form.masterPassword,
@@ -142,7 +145,7 @@ export default function RegisterPage() {
 
         const privateKeyPem = arrayBufferToPem(privateKey);
 
-        const vault = await encryptPrivateKey(
+        const vault = await encryptData(
           privateKeyPem,
           derivedKey
         );
@@ -182,15 +185,6 @@ export default function RegisterPage() {
           name="email"
           placeholder="Email"
           value={form.email}
-          onChange={handleChange}
-          className="auth-input"
-        />
-
-        <input
-          name="passwordHash"
-          type="password"
-          placeholder="Password"
-          value={form.passwordHash}
           onChange={handleChange}
           className="auth-input"
         />

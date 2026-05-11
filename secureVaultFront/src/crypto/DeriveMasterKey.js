@@ -13,7 +13,7 @@ export async function deriveMasterKey(masterPassword, salt) {
     {
       name: "PBKDF2",
       salt,
-      iterations: 100000,
+      iterations: 600000,
       hash: "SHA-256",
     },
     keyMaterial,

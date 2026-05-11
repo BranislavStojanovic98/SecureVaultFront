@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
+import { derivePasswordVerifier } from "../crypto/AuthService";
 
 export default function AuthPage() {
   const [isLogin] = useState(true);
@@ -51,12 +52,30 @@ export default function AuthPage() {
     setMessage("");
 
     try {
+
+      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+        method: "POST",
+        headers: { "Content-Type" : "application/json"},
+        body: JSON.stringify({
+            username: form.username,
+        }),
+      });
+
+      const saltData = await saltRes.json();
+
+      const salt = Uint8Array.from(atob(saltData.salt), 
+          (c) => c.charCodeAt(0)
+        );
+
+      const passwordVerifier = await derivePasswordVerifier(form.password, salt);
+
+
       const res = await fetch("http://localhost:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: form.username,
-          password: form.password,
+          password: passwordVerifier,
         }),
       });
 

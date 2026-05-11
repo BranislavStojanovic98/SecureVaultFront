@@ -1,30 +1,60 @@
-export async function requestChallenge(username) {
-  const res = await fetch("http://localhost:8080/auth/challenge", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username }),
-  });
+export async function generatePasswordVerifier(
+  masterPassword,
+  salt
+) {
+  const enc = new TextEncoder();
 
-  return res.json();
+  const keyMaterial =
+    await crypto.subtle.importKey(
+      "raw",
+      enc.encode(masterPassword),
+      "PBKDF2",
+      false,
+      ["deriveBits"]
+    );
+
+  const bits =
+    await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations: 600000,
+        hash: "SHA-256",
+      },
+      keyMaterial,
+      256
+    );
+
+  return btoa(
+    String.fromCharCode(
+      ...new Uint8Array(bits)
+    )
+  );
 }
 
-export async function verifySignature(username, signature) {
-  const res = await fetch("http://localhost:8080/auth/verifySiginture", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, signature }),
-  });
+export async function derivePasswordVerifier(password, salt) {
+  const enc = new TextEncoder();
 
-  // If response is 2xx, try JSON
-  if (res.ok) {
-    try {
-      return await res.json();
-    } catch (err) {
-      throw new Error("Unexpected JSON format from server", err);
-    }
-  }
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
 
-  // If not OK, read as text
-  const text = await res.text();
-  throw new Error(text || "Unknown server error");
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: 600000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256
+  );
+
+  return btoa(
+    String.fromCharCode(...new Uint8Array(bits))
+  );
 }

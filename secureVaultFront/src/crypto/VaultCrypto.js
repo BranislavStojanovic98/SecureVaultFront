@@ -17,7 +17,6 @@ export async function encryptData(vault, key) {
 export async function decryptData(vault, key) {
   const iv = Uint8Array.from(atob(vault.iv), c => c.charCodeAt(0));
   const data = Uint8Array.from(atob(vault.data), c => c.charCodeAt(0));
-
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,

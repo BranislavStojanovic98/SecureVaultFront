@@ -3,7 +3,14 @@ import { deriveMasterKey } from "../crypto/DeriveMasterKey";
 import { derivePasswordVerifier } from "../crypto/AuthService";
 
 function base64FromBuffer(buffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary);
 }
 
 export default function CreateSecretPage() {
@@ -60,19 +67,15 @@ export default function CreateSecretPage() {
 
       const saltRes = await fetch("http://localhost:8080/auth/salt", {
         method: "POST",
-        headers: { "Content-Type" : "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            username: localStorage.getItem("username"),
+          username: localStorage.getItem("username"),
         }),
       });
 
       const saltData = await saltRes.json();
 
-      const salt = Uint8Array.from(atob(saltData.salt), 
-          (c) => c.charCodeAt(0)
-        );
-
-      if (!saltData) throw new Error("Missing salt");
+      const salt = Uint8Array.from(atob(saltData.salt), c => c.charCodeAt(0));
 
       const verifier = await derivePasswordVerifier(masterPassword, salt);
 
@@ -82,9 +85,10 @@ export default function CreateSecretPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           username: localStorage.getItem("username"),
-          password: verifier }),
+          password: verifier,
+        }),
       });
 
       if (!verifyRes.ok) {
@@ -95,19 +99,65 @@ export default function CreateSecretPage() {
 
       const { encryptedBlob, iv } = await encryptSecret(aesKey, content);
 
-      const res = await fetch("http://localhost:8080/secret/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+      const rawAesKey = await crypto.subtle.exportKey("raw", aesKey);
+
+      const token = localStorage.getItem("token");
+      const tokenPayload = JSON.parse(atob(token.split(".")[1]));
+      const userIdForPk = tokenPayload.id;
+
+      const userRes = await fetch(
+        `http://localhost:8080/user/${userIdForPk}/public-key`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const userData = await userRes.json();
+
+      const publicKeyBytes = Uint8Array.from(
+        atob(userData.publicKey),
+        c => c.charCodeAt(0)
+      );
+
+      const publicKey = await crypto.subtle.importKey(
+        "spki",
+        publicKeyBytes,
+        {
+          name: "RSA-OAEP",
+          hash: "SHA-256",
         },
-        body: JSON.stringify({
-          teamId: Number(selectedTeam),
-          createdById: Number(userId),
-          encryptedBlob,
-          iv,
-        }),
-      });
+        false,
+        ["encrypt"]
+      );
+
+      const encryptedKey = await crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        publicKey,
+        rawAesKey
+      );
+
+      const res = await fetch(
+        "http://localhost:8080/secret/create-with-share",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            teamId: Number(selectedTeam),
+            createdById: Number(userId),
+
+            encryptedBlob,
+            iv,
+
+            encryptedKey: base64FromBuffer(encryptedKey),
+            userId: Number(userIdForPk),
+          }),
+        }
+      );
 
       if (!res.ok) throw new Error("Failed to create secret");
 

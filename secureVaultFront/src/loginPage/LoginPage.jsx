@@ -73,6 +73,7 @@ export default function AuthPage() {
       const res = await fetch("http://localhost:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           username: form.username,
           password: passwordVerifier,
@@ -89,14 +90,7 @@ export default function AuthPage() {
         return;
       }
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", form.username);
-        setMessage("Login successful");
-        navigate("/home");
-      } else {
-        setMessage("Invalid credentials");
-      }
+      
     } catch (err) {
       setMessage("Login failed", err);
     }

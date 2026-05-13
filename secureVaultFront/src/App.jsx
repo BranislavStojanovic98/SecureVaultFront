@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "./loginPage/LoginPage.jsx";
 import HomePage from "./homePage/HomePage";
@@ -7,11 +7,8 @@ import RegisterPage from "./registerPage/RegisterPage.jsx";
 import Setup2FAPage from "./registerPage/Setup2FAPage.jsx";
 import CreateSecretPage from "./secretsPage/CreateSecretPage.jsx";
 import MySecretsPage from "./secretsPage/MySecretsPage.jsx";
+import ProtectedRoute from "./ProtectedRoute.jsx";
 
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/" />;
-}
 
 export default function App() {
   return (

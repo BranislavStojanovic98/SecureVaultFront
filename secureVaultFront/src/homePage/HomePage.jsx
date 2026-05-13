@@ -1,33 +1,55 @@
 import "./HomePage.css";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
-  const username = localStorage.getItem("username") || "User";
-
+  const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("salt");
-    window.location.href = "/";
+  useEffect(() => {
+    fetch("http://localhost:8080/auth/me", {
+      credentials: "include"
+    })
+      .then(res => {
+        if (!res.ok) {
+          navigate("/");
+        }
+        return res.json();
+      })
+      .then(data => {
+        setUserId(data.userId);
+        localStorage.setItem("userId", data.userId);
+        setUsername(data.username);
+      })
+      .catch(() => navigate("/"));
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await fetch("http://localhost:8080/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    navigate("/");
   };
 
   const goToCreateSecret = () => {
     navigate("/create-secret");
   };
 
-   const goToSecrets = () => {
-    window.location.href = "/my-secrets";
+  const goToSecrets = () => {
+    navigate("/my-secrets");
   };
 
   return (
     <div className="home-container">
       <div className="home-card">
-        <h1>Welcome 👋</h1>
+        <h1>Welcome {username}👋</h1>
+        <p>Your user ID is: {userId}</p>
 
         <p className="subtitle">
-          Logged in as <span>{username}</span>
+          Logged in securely
         </p>
 
         <div className="status">
@@ -39,18 +61,18 @@ export default function HomePage() {
         </button>
 
         <button
-            onClick={goToSecrets}
-            style={{
-              padding: "10px 16px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              background: "#4a90e2",
-              color: "white"
-            }}
-          >
-            My Secrets
-          </button>
+          onClick={goToSecrets}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            background: "#4a90e2",
+            color: "white"
+          }}
+        >
+          My Secrets
+        </button>
 
         <button className="logout-btn" onClick={handleLogout}>
           Logout

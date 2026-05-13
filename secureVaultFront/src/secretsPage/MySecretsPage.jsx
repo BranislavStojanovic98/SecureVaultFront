@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { decryptData } from "../crypto/VaultCrypto";
+import { importPrivateKey, importPublicKey } from "../crypto/CryptoService";
+import "./MySecretsPage.css"
 
 function base64ToUint8(base64) {
   const binary = atob(base64);
@@ -11,6 +13,7 @@ function base64ToUint8(base64) {
 
   return bytes;
 }
+
 
 function pemToArrayBuffer(pem) {
   const b64 = pem
@@ -29,19 +32,34 @@ function pemToArrayBuffer(pem) {
 }
 
 export default function MySecretsPage() {
+  
   const [secrets, setSecrets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [vaultKey, setVaultKey] = useState(null);
   const [decryptedMap, setDecryptedMap] = useState({});
 
+  const [shareOpen, setShareOpen] = useState(false);
+  const [selectedSecret, setSelectedSecret] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+const secretsPerPage = 10;
+
+const indexOfLastSecret = currentPage * secretsPerPage;
+const indexOfFirstSecret = indexOfLastSecret - secretsPerPage;
+
+const currentSecrets = secrets.slice(indexOfFirstSecret, indexOfLastSecret);
+
+const totalPages = Math.ceil(secrets.length / secretsPerPage);
+
   useEffect(() => {
     async function fetchSecrets() {
       try {
         const res = await fetch("http://localhost:8080/secret/byUser", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
 
         const data = await res.json();
@@ -71,6 +89,7 @@ export default function MySecretsPage() {
         body: JSON.stringify({
           username: localStorage.getItem("username"),
         }),
+        credentials: "include",
       });
 
       const saltData = await saltRes.json();
@@ -166,47 +185,141 @@ export default function MySecretsPage() {
   }
 }
 
+async function openShareModal(secret) {
+  try {
+    setSelectedSecret(secret);
+    setShareOpen(true);
+
+    const res = await fetch(`http://localhost:8080/teamMember/getTeammatesFor/${secret.teamId}`, {
+      credentials: "include",
+    });
+
+    const data = await res.json();
+
+    const meRes = await fetch("http://localhost:8080/auth/me", { credentials: "include" });
+    const meData = await meRes.json();
+    const currentUserId = meData.userId;
+
+    const filtered = data.filter((u) => u.userId !== currentUserId);
+    setTeamMembers(filtered);
+  } catch(err) {
+    console.error(err);
+    alert("Failed to load Teammembers");
+  }
+}
+
+function toggleUser(userId) {
+  setSelectedUsers((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]);
+}
+
+async function shareSecret() {
+  try {
+
+    if(!vaultKey || !selectedSecret) {
+      alert("Vault not ready");
+      return;
+    }
+
+    const privateKey = await importPrivateKey(vaultKey);
+
+    const encryptedKeyBytes = base64ToUint8(selectedSecret.encryptedKey);
+
+    const aesKeyRaw = await crypto.subtle.decrypt(
+      { name: "RSA-OAEP" },
+      privateKey,
+      encryptedKeyBytes
+    );
+
+    const recipients = await Promise.all(
+        selectedUsers.map(async (id) => {
+          const res = await fetch(`http://localhost:8080/user/${id}/public-key`,{
+            credentials: "include",
+          });
+
+          const data = await res.json();
+
+          return {
+            userId: id,
+            publicKey: data.publicKey,
+          };
+        })
+    );
+
+    for(const r of recipients) {
+      const pubKey = await importPublicKey(r.publicKey);
+
+      const encryptedKey = await crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        pubKey,
+        aesKeyRaw,
+      );
+
+      await fetch(`http://localhost:8080/secret/share/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials:"include",
+          body: JSON.stringify({
+            secretId: selectedSecret.id,
+            userId: r.userId,
+            encryptedKey: Array.from(new Uint8Array(encryptedKey)),
+          }),
+        });
+    }
+    
+    alert("Shared secret successfully");
+
+    setShareOpen(false);
+    setSelectedUsers([]);
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to create secret share");
+  }
+}
+
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto" }}>
-      <h2>🔐 My Secrets</h2>
+    <div className="secrets-page">
+      <div className="page-header">
+        <h2>🔐 My Secrets</h2>
+
+        <button
+          className="back-btn"
+          onClick={() => window.history.back()}
+        >
+          ← Back
+        </button>
+      </div>
 
       <input
+        className="file-input"
         type="file"
         accept=".vault,application/json"
         onChange={(e) => unlockVault(e.target.files[0])}
-        style={{ marginBottom: 20 }}
       />
 
-      {loading && <p>Loading...</p>}
+      {loading && <p className="status-text">Loading...</p>}
 
       {!loading && secrets.length === 0 && (
-        <p>No secrets shared with you.</p>
+        <p className="status-text">No secrets shared with you.</p>
       )}
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {secrets.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              padding: 12,
-              border: "1px solid #ddd",
-              borderRadius: 8,
-            }}
-          >
+      <div className="secrets-grid">
+        {currentSecrets.map((s) => (
+          <div key={s.id} className="secret-card">
             <h4>Secret #{s.id}</h4>
 
-            <p><b>Team:</b> {s.teamId}</p>
+            <p>
+              <b>Team:</b> {s.teamId}
+            </p>
 
             {decryptedMap[s.id] ? (
-              <pre style={{
-                background: "#f5f5f5",
-                padding: 10,
-                whiteSpace: "pre-wrap"
-              }}>
+              <pre className="decrypted-box">
                 {decryptedMap[s.id]}
               </pre>
             ) : (
-              <p>
+              <p className="encrypted-text">
                 <b>Encrypted:</b>{" "}
                 {s.encryptedBlob?.substring(0, 30)}...
               </p>
@@ -214,13 +327,92 @@ export default function MySecretsPage() {
 
             <button
               onClick={() => decryptSecret(s)}
-              style={{ marginTop: 10 }}
+              className="btn"
             >
               🔓 Decrypt
+            </button>
+
+            <button
+              onClick={() => openShareModal(s)}
+              className="btn secondary"
+            >
+              Share
             </button>
           </div>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="btn secondary"
+            disabled={currentPage === 1}
+            onClick={() =>
+              setCurrentPage((prev) => prev - 1)
+            }
+          >
+            ← Previous
+          </button>
+
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <button
+            className="btn secondary"
+            disabled={currentPage === totalPages}
+            onClick={() =>
+              setCurrentPage((prev) => prev + 1)
+            }
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
+      {shareOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Share Secret</h3>
+
+            <div className="modal-list">
+              {teamMembers.map((member) => (
+                <label
+                  key={member.userId}
+                  className="modal-item"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(
+                      member.userId
+                    )}
+                    onChange={() =>
+                      toggleUser(member.userId)
+                    }
+                  />
+                  User #{member.userId}
+                </label>
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={() => setShareOpen(false)}
+                className="btn gray"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={shareSecret}
+                className="btn"
+              >
+                Share Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

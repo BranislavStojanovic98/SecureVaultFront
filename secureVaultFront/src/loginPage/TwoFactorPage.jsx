@@ -13,18 +13,15 @@ export default function TwoFactorPage() {
       const res = await fetch("http://localhost:8080/auth/verify-2fa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           tempToken,
           code,
         }),
       });
 
-      const data = await res.json();
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      if (res.ok) {
         localStorage.removeItem("tempToken");
-
         navigate("/home");
       } else {
         setMessage("Invalid code");

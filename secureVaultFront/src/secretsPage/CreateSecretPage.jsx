@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { deriveMasterKey } from "../crypto/DeriveMasterKey";
 import { derivePasswordVerifier } from "../crypto/AuthService";
+import "./CreateSecretPage.css";
 
 function base64FromBuffer(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -13,7 +15,10 @@ function base64FromBuffer(buffer) {
   return btoa(binary);
 }
 
+
 export default function CreateSecretPage() {
+  const navigate = useNavigate();
+
   const [content, setContent] = useState("");
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState("");
@@ -21,16 +26,30 @@ export default function CreateSecretPage() {
   const [status, setStatus] = useState("");
   const [masterPassword, setMasterPassword] = useState("");
 
+  const username = localStorage.getItem("username");
   const userId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    const links = document.querySelectorAll('link[rel="stylesheet"]');
+    links.forEach(link => {
+      const href = link.getAttribute("href");
+      if (href) {
+        link.setAttribute("href", href.split("?")[0] + "?v=" + Date.now());
+      }
+    });
+  }, []);
 
   useEffect(() => {
     async function fetchTeams() {
       try {
         const res = await fetch("http://localhost:8080/teamMember/my", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
+
+        if (!res.ok) {
+          navigate("/");
+          return;
+        }
 
         const data = await res.json();
         setTeams(data);
@@ -40,7 +59,7 @@ export default function CreateSecretPage() {
     }
 
     fetchTeams();
-  }, []);
+  }, [navigate]);
 
   async function encryptSecret(aesKey, plaintext) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -68,9 +87,8 @@ export default function CreateSecretPage() {
       const saltRes = await fetch("http://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: localStorage.getItem("username"),
-        }),
+        body: JSON.stringify({ username: username }),
+        credentials: "include",
       });
 
       const saltData = await saltRes.json();
@@ -81,14 +99,12 @@ export default function CreateSecretPage() {
 
       const verifyRes = await fetch("http://localhost:8080/auth/verify-master", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: localStorage.getItem("username"),
+          username: username,
           password: verifier,
         }),
+        credentials: "include",
       });
 
       if (!verifyRes.ok) {
@@ -101,18 +117,10 @@ export default function CreateSecretPage() {
 
       const rawAesKey = await crypto.subtle.exportKey("raw", aesKey);
 
-      const token = localStorage.getItem("token");
-      const tokenPayload = JSON.parse(atob(token.split(".")[1]));
-      const userIdForPk = tokenPayload.id;
-
       const userRes = await fetch(
-        `http://localhost:8080/user/${userIdForPk}/public-key`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+        `http://localhost:8080/user/${userId}/public-key`, {
+          credentials: "include",
+        });
 
       const userData = await userRes.json();
 
@@ -142,10 +150,8 @@ export default function CreateSecretPage() {
         "http://localhost:8080/secret/create-with-share",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", },
+          credentials: "include",
           body: JSON.stringify({
             teamId: Number(selectedTeam),
             createdById: Number(userId),
@@ -154,7 +160,7 @@ export default function CreateSecretPage() {
             iv,
 
             encryptedKey: base64FromBuffer(encryptedKey),
-            userId: Number(userIdForPk),
+            userId: Number(userId),
           }),
         }
       );
@@ -172,47 +178,53 @@ export default function CreateSecretPage() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto" }}>
-      <h2>Create Secret</h2>
+    <div className="create-container">
+      <div className="create-card">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
 
-      <select
-        value={selectedTeam}
-        onChange={(e) => setSelectedTeam(e.target.value)}
-        style={{ width: "100%", padding: 10, marginBottom: 10 }}
-      >
-        <option value="">Select team</option>
-        {teams.map((t) => (
-          <option key={t.teamId} value={t.teamId}>
-            {t.teamId}
-          </option>
-        ))}
-      </select>
+        <h2>Create Secret</h2>
 
-      <input
-        type="password"
-        placeholder="Master Password"
-        value={masterPassword}
-        onChange={(e) => setMasterPassword(e.target.value)}
-        style={{ width: "100%", padding: 10, marginBottom: 10 }}
-      />
+        <select
+          value={selectedTeam}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+          className="input"
+        >
+          <option value="">Select team</option>
+          {teams.map((t) => (
+            <option key={t.teamId} value={t.teamId}>
+              {t.teamId}
+            </option>
+          ))}
+        </select>
 
-      <textarea
-        rows={8}
-        style={{ width: "100%", padding: 10 }}
-        placeholder="Enter your secret..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
+        <input
+          type="password"
+          placeholder="Master Password"
+          value={masterPassword}
+          onChange={(e) => setMasterPassword(e.target.value)}
+          className="input"
+        />
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !content}
-        style={{ marginTop: 10, padding: 10 }}
-      >
-        {loading ? "Encrypting..." : "Create Secret"}
-      </button>
+        <textarea
+          rows={8}
+          placeholder="Enter your secret..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="textarea"
+        />
 
-      {status && <p>{status}</p>}
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !content}
+          className="create-btn"
+        >
+          {loading ? "Encrypting..." : "Create Secret"}
+        </button>
+
+        {status && <div className="status">{status}</div>}
+      </div>
     </div>
   );
 }

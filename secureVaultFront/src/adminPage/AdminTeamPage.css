@@ -1,0 +1,91 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+.teams-container {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: linear-gradient(135deg, #0b1220, #0f172a, #1e293b);
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.teams-card {
+  width: 550px;
+  max-width: 95vw;
+
+  padding: 24px;
+  border-radius: 14px;
+
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.teams-card h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.team-row {
+  background: rgba(15, 23, 42, 0.6);
+  padding: 12px;
+  border-radius: 10px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-row strong {
+  font-size: 16px;
+  color: #e2e8f0;
+}
+
+.team-row p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  background: #2d7ff9;
+  color: white;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #1d5fd1;
+}
+
+.teams-card > button {
+  margin-top: 20px;
+  width: 100%;
+  background: #ef4444;
+}
+
+.teams-card > button:hover {
+  background: #dc2626;
+}

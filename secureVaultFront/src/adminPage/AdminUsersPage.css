@@ -1,0 +1,160 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+.admin-users-container {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: linear-gradient(135deg, #0b1220, #0f172a, #1e293b);
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.admin-users-card {
+  width: 500px;
+  max-width: 95vw;
+
+  padding: 24px;
+  border-radius: 14px;
+
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.admin-users-card h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-row {
+  background: rgba(15, 23, 42, 0.6);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #2d7ff9;
+  color: white;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #1d5fd1;
+}
+
+.edit-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-form input,
+.edit-form select {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+}
+
+.back-btn {
+  margin-top: 20px;
+  width: 100%;
+  background: #ef4444;
+}
+
+.back-btn:hover {
+  background: #dc2626;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  padding: 12px;
+  min-height: 90px;
+}
+
+/* LEFT SIDE (text + actions) */
+.user-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* user text */
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* buttons under text */
+.user-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* RIGHT SIDE (edit only) */
+.user-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.user-actions button {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+/* small buttons */
+.user-actions button{
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.user-actions button:hover,
+.edit-btn:hover {
+  opacity: 0.85;
+}

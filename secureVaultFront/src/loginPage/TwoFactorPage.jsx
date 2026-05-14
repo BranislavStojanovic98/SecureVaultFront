@@ -20,9 +20,23 @@ export default function TwoFactorPage() {
         }),
       });
 
+      const token = localStorage.getItem("tempToken");
+      const payload = token.split(".")[1];
+      const decodedPayload = JSON.parse(atob(payload));
+      const role = decodedPayload.role;
+      console.log(role);
       if (res.ok) {
-        localStorage.removeItem("tempToken");
-        navigate("/home");
+        if(role === "ADMIN") {
+          localStorage.removeItem("tempToken");
+          navigate("/adminhome");
+        } else if(role === "DEVELOPER") {
+          localStorage.removeItem("tempToken");
+          navigate("/developerhome");
+        } else {
+          localStorage.removeItem("tempToken");
+          navigate("/home");
+        }
+        
       } else {
         setMessage("Invalid code");
       }

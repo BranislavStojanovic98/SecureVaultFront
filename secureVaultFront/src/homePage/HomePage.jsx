@@ -1,6 +1,7 @@
 import "./HomePage.css";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../crypto/AuthFetch";
 
 export default function HomePage() {
   const [userId, setUserId] = useState(null);
@@ -8,12 +9,12 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8080/auth/me", {
-      credentials: "include"
-    })
+    authFetch("http://localhost:8080/auth/me")
       .then(res => {
+        if(!res) return;
         if (!res.ok) {
           navigate("/");
+          return;
         }
         return res.json();
       })

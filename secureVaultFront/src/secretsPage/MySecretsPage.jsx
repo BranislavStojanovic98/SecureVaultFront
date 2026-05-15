@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { decryptData } from "../crypto/VaultCrypto";
 import { importPrivateKey, importPublicKey } from "../crypto/CryptoService";
 import "./MySecretsPage.css"
@@ -32,6 +33,7 @@ function pemToArrayBuffer(pem) {
 }
 
 export default function MySecretsPage() {
+  const navigate = useNavigate();
   
   const [secrets, setSecrets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -289,6 +291,13 @@ async function shareSecret() {
           onClick={() => window.history.back()}
         >
           ← Back
+        </button>
+
+         <button
+          className="rotate-btn"
+          onClick={() => navigate("/my-secrets/rotate")}
+        >
+          🔄 Rotate Secrets
         </button>
       </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { deriveMasterKey } from "../crypto/DeriveMasterKey";
-import { derivePasswordVerifier } from "../crypto/AuthService";
+import { generatePasswordVerifier } from "../crypto/AuthService";
 import "./CreateSecretPage.css";
 
 function base64FromBuffer(buffer) {
@@ -95,7 +95,7 @@ export default function CreateSecretPage() {
 
       const salt = Uint8Array.from(atob(saltData.salt), c => c.charCodeAt(0));
 
-      const verifier = await derivePasswordVerifier(masterPassword, salt);
+      const verifier = await generatePasswordVerifier(masterPassword, salt);
 
       const verifyRes = await fetch("http://localhost:8080/auth/verify-master", {
         method: "POST",
@@ -111,11 +111,33 @@ export default function CreateSecretPage() {
         throw new Error("Invalid master password");
       }
 
-      const aesKey = await deriveMasterKey(masterPassword, salt);
+      const aesKey = await crypto.subtle.generateKey( {
+          name: "AES-GCM",
+          length: 256,
+        },
+        true,
+        ["encrypt", "decrypt"]
+      );
+
+      const kek = await deriveMasterKey(masterPassword, salt);
 
       const { encryptedBlob, iv } = await encryptSecret(aesKey, content);
 
-      const rawAesKey = await crypto.subtle.exportKey("raw", aesKey);
+      const rawDek = await crypto.subtle.exportKey("raw", aesKey);
+
+      const dekIv = crypto.getRandomValues(new Uint8Array(12));
+
+      const wrappedDek = await crypto.subtle.encrypt(
+        {
+          name: "AES-GCM",
+          iv: dekIv,
+        },
+        kek,
+        rawDek
+      );
+
+      const wrappedDekB64 = base64FromBuffer(wrappedDek);
+      const dekIvB64 = base64FromBuffer(dekIv);
 
       const userRes = await fetch(
         `http://localhost:8080/user/${userId}/public-key`, {
@@ -143,7 +165,7 @@ export default function CreateSecretPage() {
       const encryptedKey = await crypto.subtle.encrypt(
         { name: "RSA-OAEP" },
         publicKey,
-        rawAesKey
+        rawDek
       );
 
       const res = await fetch(
@@ -158,6 +180,9 @@ export default function CreateSecretPage() {
 
             encryptedBlob,
             iv,
+
+            wrappedDek: wrappedDekB64,
+            wrappedDekIv: dekIvB64,
 
             encryptedKey: base64FromBuffer(encryptedKey),
             userId: Number(userId),

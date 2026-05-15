@@ -1,18 +1,33 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import api from "./crypto/axios";
 
-export default function ProtectedRoute({ children }) {
-  const [auth, setAuth] = useState(null);
+export default function ProtectedRoute({ role }) {
+  const [status, setStatus] = useState("loading");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8080/auth/me", {
-      credentials: "include"
-    })
-      .then(res => setAuth(res.ok))
-      .catch(() => setAuth(false));
+    api.get("/auth/me")
+      .then((res) => {
+        setUser(res.data);
+        setStatus("authed");
+      })
+      .catch(() => {
+        setStatus("unauth");
+      });
   }, []);
 
-  if (auth === null) return null;
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
 
-  return auth ? children : <Navigate to="/" replace />;
+  if (status === "unauth") {
+    return <Navigate to="/" replace />;
+  }
+
+  if (role && user?.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Outlet />;
 }

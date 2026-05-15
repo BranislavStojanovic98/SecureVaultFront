@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authFetch } from "../crypto/AuthFetch";
+import api from "../crypto/axios";
 import "./DeveloperPage.css"
 
 export default function DeveloperPage() {
@@ -10,37 +10,34 @@ export default function DeveloperPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    authFetch("http://localhost:8080/auth/me")
-      .then((res) => {
-        if(res) return;
-        if (!res.ok) {
-          navigate("/");
-          return;
-        }
+    api.get("/auth/me")
+      .then(res => {
+        const data = res.data;
 
-        return res.json();
-      })
-      .then((data) => {
+        localStorage.setItem("userId", data.userId);
         setUserId(data.userId);
         setUsername(data.username);
 
-        localStorage.setItem("userId", data.userId);
-
-        // Optional role protection
         if (data.role !== "DEVELOPER") {
           navigate("/home");
         }
       })
-      .catch(() => navigate("/"));
+      .catch(() => {
+        localStorage.clear();
+        navigate("/");
+      });
   }, [navigate]);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:8080/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-
+    try {
+      await api.post("/auth/logout");
+      navigate("/");
+    } catch (err) {
+      console.log(err);
+    } finally {
+    localStorage.clear();
     navigate("/");
+  }
   };
 
   const goToSecrets = () => {

@@ -15,8 +15,45 @@ export async function encryptData(vault, key) {
 }
 
 export async function decryptData(vault, key) {
-  const iv = Uint8Array.from(atob(vault.iv), c => c.charCodeAt(0));
-  const data = Uint8Array.from(atob(vault.data), c => c.charCodeAt(0));
+  function normalizeBytes(input, name = "field") {
+    if (!input) {
+      throw new Error(`Missing byte field: ${name}`);
+    }
+
+    // already bytes
+    if (input instanceof Uint8Array) return input;
+
+    // Java byte[] → JSON array
+    if (Array.isArray(input)) {
+      return new Uint8Array(input);
+    }
+
+    if (typeof input === "string") {
+      const trimmed = input.trim();
+
+      // base64 check (strict)
+      const isBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed);
+
+      if (!isBase64) {
+        throw new Error(`Invalid base64 in ${name}: ${trimmed.slice(0, 30)}`);
+      }
+
+      const binary = atob(trimmed);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return bytes;
+    }
+
+    throw new Error(`Unsupported type for ${name}: ${typeof input}`);
+  }
+
+  const iv = normalizeBytes(vault.iv, "iv");
+  const data = normalizeBytes(vault.data, "data");
+
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,

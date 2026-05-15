@@ -5,18 +5,6 @@ export async function authFetch(url, options = {}) {
   });
 
   if (res.status === 401) {
-    const data = await res.json().catch(() => ({}));
-
-    if (data.error === "TOKEN_EXPIRED") {
-      await fetch("http://localhost:8080/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      window.location.href = "/";
-      return;
-    }
-
     window.location.href = "/";
     return;
   }

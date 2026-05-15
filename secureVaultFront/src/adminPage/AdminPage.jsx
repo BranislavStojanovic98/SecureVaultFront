@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authFetch } from "../crypto/AuthFetch";
+import api from "../crypto/axios";
 import "./AdminPage.css"
 
 export default function AdminPage() {
@@ -10,17 +10,10 @@ export default function AdminPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    authFetch("http://localhost:8080/auth/me")
-      .then((res) => {
-        if(!res) return;
-        if (!res.ok) {
-          navigate("/");
-          return;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        // Optional role check
+    api.get("/auth/me")
+      .then(res => {
+        const data = res.data;
+
         if (data.role !== "ADMIN") {
           navigate("/home");
           return;
@@ -29,16 +22,22 @@ export default function AdminPage() {
         setAdminId(data.userId);
         setAdminName(data.username);
       })
-      .catch(() => navigate("/"));
+      .catch(() => {
+        localStorage.clear();
+        navigate("/");
+      });
   }, [navigate]);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:8080/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-
+    try {
+      await api.post("/auth/logout");
+      navigate("/");
+    } catch (err) {
+      console.log(err);
+    } finally {
+    localStorage.clear();
     navigate("/");
+  }
   };
 
   const goToUserControl = () => {

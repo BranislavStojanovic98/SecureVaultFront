@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
-import { derivePasswordVerifier } from "../crypto/AuthService";
+import { generatePasswordVerifier } from "../crypto/AuthService";
 
 export default function AuthPage() {
   const [isLogin] = useState(true);
@@ -67,7 +67,7 @@ export default function AuthPage() {
           (c) => c.charCodeAt(0)
         );
 
-      const passwordVerifier = await derivePasswordVerifier(form.password, salt);
+      const passwordVerifier = await generatePasswordVerifier(form.password, salt);
 
 
       const res = await fetch("http://localhost:8080/auth/login", {

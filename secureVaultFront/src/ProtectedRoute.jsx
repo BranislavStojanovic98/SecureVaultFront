@@ -13,6 +13,7 @@ export default function ProtectedRoute({ role }) {
         setStatus("authed");
       })
       .catch(() => {
+        api.post("/auth/logout")
         setStatus("unauth");
       });
   }, []);

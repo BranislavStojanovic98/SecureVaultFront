@@ -24,7 +24,6 @@ export default function TwoFactorPage() {
       const payload = token.split(".")[1];
       const decodedPayload = JSON.parse(atob(payload));
       const role = decodedPayload.role;
-      console.log(role);
       if (res.ok) {
         if(role === "ADMIN") {
           localStorage.removeItem("tempToken");

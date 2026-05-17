@@ -13,7 +13,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
 
     const shouldLogout =
@@ -21,9 +21,17 @@ api.interceptors.response.use(
       error?.response?.data === "TOKEN_EXPIRED";
 
     if (shouldLogout) {
+
+      try {
+        await api.post("/auth/logout", {}, {
+          withCredentials: true,
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
       localStorage.clear();
       sessionStorage.clear();
-
       window.dispatchEvent(new Event("auth:logout"));
       window.location.href = "/";
     }

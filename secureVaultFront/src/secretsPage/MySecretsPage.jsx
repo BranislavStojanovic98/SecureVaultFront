@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { decryptData } from "../crypto/VaultCrypto";
 import { importPrivateKey, importPublicKey } from "../crypto/CryptoService";
+import api from "../crypto/axios";
 import "./MySecretsPage.css"
 
 function base64ToUint8(base64) {
@@ -181,6 +182,10 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
       [secret.id]: plaintext,
     }));
 
+    await api.post("/audit/decrypt", {
+      secretId: secret.id
+    });
+
   } catch (err) {
     console.error("Decrypt failed:", err);
     alert("Failed to decrypt secret");
@@ -337,6 +342,7 @@ async function shareSecret() {
             <button
               onClick={() => decryptSecret(s)}
               className="btn"
+              disabled={!!decryptedMap[s.id]}
             >
               🔓 Decrypt
             </button>

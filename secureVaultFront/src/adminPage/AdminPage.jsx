@@ -6,12 +6,34 @@ import "./AdminPage.css"
 export default function AdminPage() {
   const [adminName, setAdminName] = useState("");
   const [adminId, setAdminId] = useState(null);
+  const [checkingAudit, setCheckingAudit] = useState(false);
 
   const navigate = useNavigate();
 
+  const checkAuditIntegrity = async () => {
+    try {
+      setCheckingAudit(true);
+
+      const res = await api.get("/audit/verify");
+
+
+      if (res.data === false) {
+        alert("WARNING: Audit log tampering detected!");
+      } else {
+        alert("Audit logs are clean.");
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to verify audit logs.");
+    } finally {
+      setCheckingAudit(false);
+    }
+  };
+
   useEffect(() => {
     api.get("/auth/me")
-      .then(res => {
+      .then(async res => {
         const data = res.data;
 
         if (data.role !== "ADMIN") {
@@ -21,6 +43,18 @@ export default function AdminPage() {
 
         setAdminId(data.userId);
         setAdminName(data.username);
+
+        try {
+          const auditRes = await api.get("/audit/verify");
+
+          if (auditRes.data === false) {
+            alert("WARNING: Audit log tampering detected!");
+          }
+
+        } catch (err) {
+          console.log("Audit check failed", err);
+      }
+
       })
       .catch(() => {
         localStorage.clear();
@@ -81,6 +115,13 @@ export default function AdminPage() {
 
           <button className="admin-btn teams-btn" onClick={goToTeams}>
             🧩 Teams Overview
+          </button>
+          <button
+            className="admin-btn audit-btn"
+            onClick={checkAuditIntegrity}
+            disabled={checkingAudit}
+          >
+            🧾 Verify Audit Integrity
           </button>
 
           <button className="admin-btn logout-btn" onClick={handleLogout}>

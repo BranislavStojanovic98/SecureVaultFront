@@ -18,22 +18,17 @@ api.interceptors.response.use(
 
     const shouldLogout =
       status === 401 ||
-      error?.response?.data === "TOKEN_EXPIRED";
+      error?.response?.data === "TOKEN_EXPIRED" ||
+      status === 403 ||
+      error?.response?.data === "ACCOUNT_FROZEN"
+      ;
 
     if (shouldLogout) {
-
-      try {
-        await api.post("/auth/logout", {}, {
-          withCredentials: true,
-        });
-      } catch (e) {
-        console.error(e);
-      }
 
       localStorage.clear();
       sessionStorage.clear();
       window.dispatchEvent(new Event("auth:logout"));
-      window.location.href = "/";
+      window.location.replace("/");
     }
 
     return Promise.reject(error);

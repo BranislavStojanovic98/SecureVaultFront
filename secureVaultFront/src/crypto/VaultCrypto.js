@@ -20,10 +20,8 @@ export async function decryptData(vault, key) {
       throw new Error(`Missing byte field: ${name}`);
     }
 
-    // already bytes
     if (input instanceof Uint8Array) return input;
 
-    // Java byte[] → JSON array
     if (Array.isArray(input)) {
       return new Uint8Array(input);
     }
@@ -31,7 +29,6 @@ export async function decryptData(vault, key) {
     if (typeof input === "string") {
       const trimmed = input.trim();
 
-      // base64 check (strict)
       const isBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed);
 
       if (!isBase64) {

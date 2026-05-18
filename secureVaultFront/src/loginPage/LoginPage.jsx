@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./LoginPage.css";
 import { useNavigate } from "react-router-dom";
 import { generatePasswordVerifier } from "../crypto/AuthService";
@@ -14,6 +14,10 @@ export default function AuthPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    localStorage.clear();
+  })
 
   const handleChange = (e) => {
     setForm({

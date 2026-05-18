@@ -86,6 +86,10 @@ export default function AdminPage() {
     navigate("/admin/teams")
   }
 
+  const goToAuditLogs = () => {
+  navigate("/admin/audit-logs");
+};
+
   return (
     <div className="admin-container">
       <div className="admin-card">
@@ -122,6 +126,12 @@ export default function AdminPage() {
             disabled={checkingAudit}
           >
             🧾 Verify Audit Integrity
+          </button>
+          <button
+            className="admin-btn logs-btn"
+            onClick={goToAuditLogs}
+          >
+            📜 View Audit Logs
           </button>
 
           <button className="admin-btn logout-btn" onClick={handleLogout}>

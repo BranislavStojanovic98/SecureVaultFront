@@ -14,6 +14,7 @@ import AdminUsersPage from "./adminPage/AdminUsersPage.jsx";
 import AdminTeamsPage from "./adminPage/AdminTeamPage.jsx";
 import AdminTeamDetailsPage from "./adminPage/AdminTeamDetailsPage.jsx";
 import SecretRotationPage from "./secretsPage/SecretRotationPage.jsx";
+import AdminAuditLogsPage from "./adminPage/AdminAuditLogsPage.jsx";
 
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/teams" element={<AdminTeamsPage />} />
         <Route path="/admin/teams/:teamId" element={<AdminTeamDetailsPage />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
       </Route>
 
       {/* DEVELOPER ONLY */}

@@ -42,6 +42,7 @@ export default function AdminPage() {
         }
 
         setAdminId(data.userId);
+        localStorage.setItem("userId", data.userId);
         setAdminName(data.username);
 
         try {

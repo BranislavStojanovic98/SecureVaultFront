@@ -5,6 +5,9 @@ import "./AdminTeamPage.css";
 
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,6 +22,46 @@ export default function AdminTeamsPage() {
       .then((data) => setTeams(data))
       .catch(() => navigate("/"));
   }, [navigate]);
+
+  const createTeam = async () => {
+  if (!newTeamName.trim()) return;
+
+  const response = await fetch(`http://localhost:8080/team`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      name: newTeamName,
+      createdById: localStorage.getItem("userId"),
+    }),
+  });
+
+  const createdTeam = await response.json();
+
+  setShowCreateModal(false);
+  setNewTeamName("");
+
+  navigate(`/admin/teams/${createdTeam.id}`);
+};
+
+const deleteTeam = async (teamId) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this team?"
+  );
+
+  if (!confirmed) return;
+
+  await fetch(`http://localhost:8080/team/remove/${teamId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  setTeams((prev) =>
+    prev.filter((team) => team.id !== teamId)
+  );
+};
 
   const openTeam = (teamId) => {
     navigate(`/admin/teams/${teamId}`);
@@ -38,12 +81,58 @@ export default function AdminTeamsPage() {
                 <p>{team.id}</p>
               </div>
 
-              <button onClick={() => openTeam(team.id)}>
-                View Team
-              </button>
+              <div className="team-actions">
+                <button onClick={() => openTeam(team.id)}>
+                  View Team
+                </button>
+
+                <button
+                  className="delete-btn"
+                  onClick={() => deleteTeam(team.id)}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
+
+        <button
+          className="add-member-btn"
+          onClick={() => setShowCreateModal(true)}
+        >
+          Create Team
+        </button>
+
+        {showCreateModal && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <h3>Create Team</h3>
+
+              <input
+                type="text"
+                placeholder="Team name"
+                value={newTeamName}
+                onChange={(e) => setNewTeamName(e.target.value)}
+              />
+
+              <div className="modal-actions">
+                <button onClick={createTeam}>
+                  Create
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewTeamName("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <button onClick={() => navigate("/adminhome")}>
           Back

@@ -1,25 +1,11 @@
 import "./HomePage.css";
-import { useEffect, useState } from "react";
+import { useAuth } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../crypto/axios";
 
 export default function HomePage() {
-  const [userId, setUserId] = useState(null);
-  const [username, setUsername] = useState("");
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    api.get("/auth/me")
-      .then(res => {
-        localStorage.setItem("userId", res.data.userId);
-        setUserId(res.data.userId);
-        setUsername(res.data.username);
-      })
-      .catch(() => {
-        localStorage.clear();
-        navigate("/");
-      });
-  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -44,8 +30,8 @@ export default function HomePage() {
   return (
     <div className="home-container">
       <div className="home-card">
-        <h1>Welcome {username}👋</h1>
-        <p>Your user ID is: {userId}</p>
+        <h1>Welcome {user?.username}👋</h1>
+        <p>Your user ID is: {user?.userId}</p>
 
         <p className="subtitle">
           Logged in securely

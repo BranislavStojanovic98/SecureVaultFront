@@ -1,33 +1,19 @@
-import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import api from "./crypto/axios";
+import { useAuth } from "./AuthContext";
 
 export default function ProtectedRoute({ role }) {
-  const [status, setStatus] = useState("loading");
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    api.get("/auth/me")
-      .then((res) => {
-        setUser(res.data);
-        setStatus("authed");
-      })
-      .catch(() => {
-        api.post("/auth/logout")
-        setStatus("unauth");
-      });
-  }, []);
-
-  if (status === "loading") {
+  if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (status === "unauth") {
+  if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  if (role && user?.role !== role) {
-    return <Navigate to="/" replace />;
+  if (role && user.role !== role) {
+    return <Navigate to="/403" replace />;
   }
 
   return <Outlet />;

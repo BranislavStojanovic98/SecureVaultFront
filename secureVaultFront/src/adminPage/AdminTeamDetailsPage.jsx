@@ -15,6 +15,11 @@ export default function AdminTeamDetailsPage() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedRole, setSelectedRole] = useState("MEMBER");
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editRole, setEditRole] = useState("MEMBER");
+    
+
   useEffect(() => {
     if (!teamId) return;
 
@@ -71,6 +76,29 @@ export default function AdminTeamDetailsPage() {
     refreshMembers();
   };
 
+  const updateMemberRole = async () => {
+  if (!editingMember) return;
+
+  await fetch(`http://localhost:8080/teamMember/edit`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      teamId: Number(teamId),
+      userId: editingMember.userId,
+      role: editRole,
+    }),
+  });
+
+  setShowEditModal(false);
+  setEditingMember(null);
+  setEditRole("MEMBER");
+
+  refreshMembers();
+};
+
   const refreshMembers = () => {
     authFetch(`http://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
       .then((res) => res.json())
@@ -110,16 +138,26 @@ export default function AdminTeamDetailsPage() {
                     </small>
                   </div>
 
-                  <button onClick={() => removeMember(m.userId)}>
-                    Remove
-                  </button>
+                  <div className="member-actions">
+                    <button
+                      onClick={() => {
+                        setEditingMember(m);
+                        setEditRole(m.role);
+                        setShowEditModal(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button onClick={() => removeMember(m.userId)}>
+                      Remove
+                    </button>
+                  </div>
                 </div>
               );
             })
           )}
         </div>
-
-        <h3>➕ Add Users</h3>
 
         <button
           className="add-member-btn"
@@ -171,6 +209,38 @@ export default function AdminTeamDetailsPage() {
                     setShowAddModal(false);
                     setSelectedUserId(null);
                     setSelectedRole("MEMBER");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showEditModal && (
+          <div className="modal-overlay">
+            <div className="modal-card"> 
+              <h3>Edit Team Role</h3>
+
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value)}
+              >
+                <option value="MEMBER">MEMBER</option>
+                <option value="LEAD">LEAD</option>
+              </select>
+
+              <div className="modal-actions">
+                <button onClick={updateMemberRole}>
+                  Save
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingMember(null);
+                    setEditRole("MEMBER");
                   }}
                 >
                   Cancel

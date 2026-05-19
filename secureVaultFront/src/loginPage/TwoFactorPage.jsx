@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
 
 export default function TwoFactorPage() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+
+  const { refreshUser } = useAuth();
 
   const handleVerify = async () => {
     const tempToken = localStorage.getItem("tempToken");
@@ -24,14 +27,18 @@ export default function TwoFactorPage() {
       const payload = token.split(".")[1];
       const decodedPayload = JSON.parse(atob(payload));
       const role = decodedPayload.role;
+      
       if (res.ok) {
         if(role === "ADMIN") {
+          await refreshUser();
           localStorage.removeItem("tempToken");
           navigate("/adminhome");
         } else if(role === "DEVELOPER") {
+          await refreshUser();
           localStorage.removeItem("tempToken");
           navigate("/developerhome");
-        } else {
+        } else if(role === "TEAM_LEAD") {
+          await refreshUser();
           localStorage.removeItem("tempToken");
           navigate("/home");
         }

@@ -14,6 +14,7 @@ import AdminUsersPage from "./adminPage/AdminUsersPage.jsx";
 import AdminTeamsPage from "./adminPage/AdminTeamPage.jsx";
 import AdminTeamDetailsPage from "./adminPage/AdminTeamDetailsPage.jsx";
 import SecretRotationPage from "./secretsPage/SecretRotationPage.jsx";
+import SharedSecretsPage from "./secretsPage/SharedSecretsPage.jsx";
 import AdminAuditLogsPage from "./adminPage/AdminAuditLogsPage.jsx";
 
 
@@ -26,8 +27,8 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/setup-2fa" element={<Setup2FAPage />} />
 
-      {/* PROTECTED (all logged-in users) */}
-      <Route element={<ProtectedRoute />}>
+      {/* TEAM_LEAD ONLY */}
+      <Route element={<ProtectedRoute role="TEAM_LEAD" />}>
         <Route path="/home" element={<HomePage />} />
         <Route path="/create-secret" element={<CreateSecretPage />} />
         <Route path="/my-secrets" element={<MySecretsPage />} />
@@ -46,7 +47,9 @@ export default function App() {
       {/* DEVELOPER ONLY */}
       <Route element={<ProtectedRoute role="DEVELOPER" />}>
         <Route path="/developerhome" element={<DeveloperPage />} />
+        <Route path="/shared-secrets" element={<SharedSecretsPage />} />
       </Route>
+      
     </Routes>
   );
 }

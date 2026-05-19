@@ -1,32 +1,11 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
 import api from "../crypto/axios";
 import "./DeveloperPage.css"
 
 export default function DeveloperPage() {
-  const [userId, setUserId] = useState(null);
-  const [username, setUsername] = useState("");
-
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    api.get("/auth/me")
-      .then(res => {
-        const data = res.data;
-
-        localStorage.setItem("userId", data.userId);
-        setUserId(data.userId);
-        setUsername(data.username);
-
-        if (data.role !== "DEVELOPER") {
-          navigate("/home");
-        }
-      })
-      .catch(() => {
-        localStorage.clear();
-        navigate("/");
-      });
-  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -41,15 +20,15 @@ export default function DeveloperPage() {
   };
 
   const goToSecrets = () => {
-    navigate("/my-secrets");
+    navigate("/shared-secrets");
   };
 
   return (
     <div className="developer-container">
       <div className="developer-card">
-        <h1>Welcome Developer {username} 👨‍💻</h1>
+        <h1>Welcome Developer {user?.username} 👨‍💻</h1>
 
-        <p>Your developer ID is: {userId}</p>
+        <p>Your developer ID is: {user?.userId}</p>
 
         <p className="subtitle">
           Developer workspace active

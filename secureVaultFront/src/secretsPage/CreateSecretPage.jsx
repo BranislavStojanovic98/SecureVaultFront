@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { deriveMasterKey } from "../crypto/DeriveMasterKey";
+import { useAuth } from "../AuthContext";
 import { generatePasswordVerifier } from "../crypto/AuthService";
 import "./CreateSecretPage.css";
 
@@ -25,9 +26,10 @@ export default function CreateSecretPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [masterPassword, setMasterPassword] = useState("");
+  const { user } = useAuth();
 
-  const username = localStorage.getItem("username");
-  const userId = localStorage.getItem("userId");
+  const username = user?.username;
+  const userId = user?.userId;
 
   useEffect(() => {
     const links = document.querySelectorAll('link[rel="stylesheet"]');

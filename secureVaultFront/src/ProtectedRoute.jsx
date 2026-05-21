@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import api from "./crypto/axios";
 
 export default function ProtectedRoute({ role }) {
   const { user, loading } = useAuth();
@@ -13,7 +14,8 @@ export default function ProtectedRoute({ role }) {
   }
 
   if (role && user.role !== role) {
-    return <Navigate to="/403" replace />;
+    api.post("auth/logout");
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

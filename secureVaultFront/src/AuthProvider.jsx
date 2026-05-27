@@ -9,7 +9,7 @@ export default function AuthProvider({ children }) {
 
   const location = useLocation();
 
-  const PUBLIC_ROUTES = ["/", "/register", "/2fa"];
+  const PUBLIC_ROUTES = ["/", "/register", "/2fa", "/setup-2fa"];
 
   const fetchUser = useCallback(async () => {
     try {

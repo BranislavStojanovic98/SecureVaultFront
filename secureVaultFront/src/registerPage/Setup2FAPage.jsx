@@ -7,9 +7,9 @@ export default function Setup2FAPage() {
   const qrCode = localStorage.getItem("qrCode");
 
   const handleContinue = () => {
-    localStorage.removeItem("qrCode", data.totpQrcode);
-    localStorage.removeItem("username", data.username);
-    navigate("/home");
+    localStorage.removeItem("qrCode");
+    localStorage.removeItem("username");
+    navigate("/");
   };
 
   return (

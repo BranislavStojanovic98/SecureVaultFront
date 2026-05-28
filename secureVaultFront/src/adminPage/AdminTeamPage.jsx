@@ -11,7 +11,7 @@ export default function AdminTeamsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    authFetch("http://localhost:8080/team/allteams")
+    authFetch("https://localhost:8080/team/allteams")
       .then((res) => {
         if (!res || !res.ok) {
           navigate("/adminhome");
@@ -26,7 +26,7 @@ export default function AdminTeamsPage() {
   const createTeam = async () => {
   if (!newTeamName.trim()) return;
 
-  const response = await fetch(`http://localhost:8080/team`, {
+  const response = await fetch(`https://localhost:8080/team`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -53,7 +53,7 @@ const deleteTeam = async (teamId) => {
 
   if (!confirmed) return;
 
-  await fetch(`http://localhost:8080/team/remove/${teamId}`, {
+  await fetch(`https://localhost:8080/team/remove/${teamId}`, {
     method: "DELETE",
     credentials: "include",
   });

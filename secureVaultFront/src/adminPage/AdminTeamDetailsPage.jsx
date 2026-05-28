@@ -23,15 +23,15 @@ export default function AdminTeamDetailsPage() {
   useEffect(() => {
     if (!teamId) return;
 
-    authFetch(`http://localhost:8080/team/teamno/${teamId}`)
+    authFetch(`https://localhost:8080/team/teamno/${teamId}`)
       .then((res) => res.json())
       .then((data) => setTeam(data));
 
-    authFetch(`http://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
+    authFetch(`https://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
       .then((res) => res.json())
       .then((data) => setMembers(data));
 
-    authFetch(`http://localhost:8080/user/everyone`)
+    authFetch(`https://localhost:8080/user/everyone`)
       .then((res) => res.json())
       .then((data) => setUsers(data));
   }, [teamId]);
@@ -39,7 +39,7 @@ export default function AdminTeamDetailsPage() {
   const addMember = async () => {
     if (!selectedUserId) return;
 
-    await fetch(`http://localhost:8080/teamMember/addmember`, {
+    await fetch(`https://localhost:8080/teamMember/addmember`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -61,7 +61,7 @@ export default function AdminTeamDetailsPage() {
   };
 
   const removeMember = async (userId) => {
-    await fetch(`http://localhost:8080/teamMember/remove`, {
+    await fetch(`https://localhost:8080/teamMember/remove`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -79,7 +79,7 @@ export default function AdminTeamDetailsPage() {
   const updateMemberRole = async () => {
   if (!editingMember) return;
 
-  await fetch(`http://localhost:8080/teamMember/edit`, {
+  await fetch(`https://localhost:8080/teamMember/edit`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -100,7 +100,7 @@ export default function AdminTeamDetailsPage() {
 };
 
   const refreshMembers = () => {
-    authFetch(`http://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
+    authFetch(`https://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
       .then((res) => res.json())
       .then((data) => setMembers(data));
   };

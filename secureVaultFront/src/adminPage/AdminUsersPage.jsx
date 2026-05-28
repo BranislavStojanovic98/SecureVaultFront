@@ -13,7 +13,7 @@ export default function AdminUsersPage() {
   const navigate = useNavigate();
 
   const activateUser = async (id) => {
-  await fetch(`http://localhost:8080/user/activate/${id}`, {
+  await fetch(`https://localhost:8080/user/activate/${id}`, {
     method: "PUT",
     credentials: "include",
   });
@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
 };
 
 const deactivateUser = async (id) => {
-  await fetch(`http://localhost:8080/user/deactivate/${id}`, {
+  await fetch(`https://localhost:8080/user/deactivate/${id}`, {
     method: "PUT",
     credentials: "include",
   });
@@ -31,7 +31,7 @@ const deactivateUser = async (id) => {
 };
 
 const freezeUser = async (id) => {
-  await fetch(`http://localhost:8080/user/freeze/${id}`, {
+  await fetch(`https://localhost:8080/user/freeze/${id}`, {
     method: "PUT",
     credentials: "include",
   });
@@ -40,7 +40,7 @@ const freezeUser = async (id) => {
 };
 
 const unfreezeUser = async (id) => {
-  await fetch(`http://localhost:8080/user/unfreeze/${id}`, {
+  await fetch(`https://localhost:8080/user/unfreeze/${id}`, {
     method: "PUT",
     credentials: "include",
   });
@@ -51,7 +51,7 @@ const unfreezeUser = async (id) => {
   useEffect(() => {
   const loadUsers = async () => {
     try {
-      const res = await fetch("http://localhost:8080/user/everyone", {
+      const res = await fetch("https://localhost:8080/user/everyone", {
         credentials: "include",
       });
 
@@ -73,7 +73,7 @@ const unfreezeUser = async (id) => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:8080/user/everyone", {
+      const res = await fetch("https://localhost:8080/user/everyone", {
         credentials: "include",
       });
 
@@ -111,7 +111,7 @@ const unfreezeUser = async (id) => {
   };
 
   const saveUser = async (id) => {
-    await fetch(`http://localhost:8080/user/edit/${id}`, {
+    await fetch(`https://localhost:8080/user/edit/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

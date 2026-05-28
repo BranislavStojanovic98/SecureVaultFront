@@ -53,7 +53,7 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
   useEffect(() => {
     async function fetchSecrets() {
       try {
-        const res = await fetch("http://localhost:8080/secret/byUser", {
+        const res = await fetch("https://localhost:8080/secret/byUser", {
           credentials: "include",
         });
 
@@ -78,7 +78,7 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
     try {
       const masterPassword = prompt("Enter master password");
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

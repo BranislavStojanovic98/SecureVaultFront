@@ -66,7 +66,7 @@ export default function AuthPage() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:8080/auth/register", {
+      const res = await fetch("https://localhost:8080/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export default function AuthPage() {
 
     try {
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type" : "application/json"},
         body: JSON.stringify({
@@ -108,7 +108,7 @@ export default function AuthPage() {
       const passwordVerifier = await generatePasswordVerifier(form.password, salt);
 
 
-      const res = await fetch("http://localhost:8080/auth/login", {
+      const res = await fetch("https://localhost:8080/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

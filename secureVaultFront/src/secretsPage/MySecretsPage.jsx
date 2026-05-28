@@ -61,7 +61,7 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
   useEffect(() => {
     async function fetchSecrets() {
       try {
-        const res = await fetch("http://localhost:8080/secret/byUser", {
+        const res = await fetch("https://localhost:8080/secret/byUser", {
           credentials: "include",
         });
 
@@ -86,7 +86,7 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
     try {
       const masterPassword = prompt("Enter master password");
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,13 +197,13 @@ async function openShareModal(secret) {
     setSelectedSecret(secret);
     setShareOpen(true);
 
-    const res = await fetch(`http://localhost:8080/teamMember/getTeammatesFor/${secret.teamId}`, {
+    const res = await fetch(`https://localhost:8080/teamMember/getTeammatesFor/${secret.teamId}`, {
       credentials: "include",
     });
 
     const data = await res.json();
 
-    const meRes = await fetch("http://localhost:8080/auth/me", { credentials: "include" });
+    const meRes = await fetch("https://localhost:8080/auth/me", { credentials: "include" });
     const meData = await meRes.json();
     const currentUserId = meData.userId;
 
@@ -239,7 +239,7 @@ async function shareSecret() {
 
     const recipients = await Promise.all(
         selectedUsers.map(async (id) => {
-          const res = await fetch(`http://localhost:8080/user/${id}/public-key`,{
+          const res = await fetch(`https://localhost:8080/user/${id}/public-key`,{
             credentials: "include",
           });
 
@@ -261,7 +261,7 @@ async function shareSecret() {
         aesKeyRaw,
       );
 
-      await fetch(`http://localhost:8080/secret/share/create`, {
+      await fetch(`https://localhost:8080/secret/share/create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

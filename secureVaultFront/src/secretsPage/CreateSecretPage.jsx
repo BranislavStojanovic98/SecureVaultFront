@@ -44,7 +44,7 @@ export default function CreateSecretPage() {
   useEffect(() => {
     async function fetchTeams() {
       try {
-        const res = await fetch("http://localhost:8080/teamMember/my", {
+        const res = await fetch("https://localhost:8080/teamMember/my", {
           credentials: "include",
         });
 
@@ -86,7 +86,7 @@ export default function CreateSecretPage() {
       if (!selectedTeam) throw new Error("Please select a team");
       if (!masterPassword) throw new Error("Master password is required");
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username }),
@@ -99,7 +99,7 @@ export default function CreateSecretPage() {
 
       const verifier = await generatePasswordVerifier(masterPassword, salt);
 
-      const verifyRes = await fetch("http://localhost:8080/auth/verify-master", {
+      const verifyRes = await fetch("https://localhost:8080/auth/verify-master", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -142,7 +142,7 @@ export default function CreateSecretPage() {
       const dekIvB64 = base64FromBuffer(dekIv);
 
       const userRes = await fetch(
-        `http://localhost:8080/user/${userId}/public-key`, {
+        `https://localhost:8080/user/${userId}/public-key`, {
           credentials: "include",
         });
 
@@ -171,7 +171,7 @@ export default function CreateSecretPage() {
       );
 
       const res = await fetch(
-        "http://localhost:8080/secret/create-with-share",
+        "https://localhost:8080/secret/create-with-share",
         {
           method: "POST",
           headers: { "Content-Type": "application/json", },

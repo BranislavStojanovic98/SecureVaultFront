@@ -62,7 +62,7 @@ export default function SecretRotationPage() {
   useEffect(() => {
     async function fetchSecrets() {
       try {
-        const res = await fetch("http://localhost:8080/secret/byThisUser", {
+        const res = await fetch("https://localhost:8080/secret/byThisUser", {
           credentials: "include",
         });
         setSecrets(await res.json());
@@ -80,7 +80,7 @@ export default function SecretRotationPage() {
     try {
       const masterPassword = prompt("Enter master password");
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: localStorage.getItem("username") }),
@@ -138,7 +138,7 @@ export default function SecretRotationPage() {
       const username = localStorage.getItem("username");
       const masterPassword = prompt("Enter master password again");
 
-      const saltRes = await fetch("http://localhost:8080/auth/salt", {
+      const saltRes = await fetch("https://localhost:8080/auth/salt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
@@ -218,7 +218,7 @@ export default function SecretRotationPage() {
             );
 
             const recipientsRes = await fetch(
-              `http://localhost:8080/secret/shared-public-keys/${s.id}`,
+              `https://localhost:8080/secret/shared-public-keys/${s.id}`,
               { credentials: "include" }
             );
             const recipients = await recipientsRes.json();
@@ -242,7 +242,7 @@ export default function SecretRotationPage() {
 
             await Promise.all(
               shareRequests.map((payload) =>
-                fetch("http://localhost:8080/secret/share/create", {
+                fetch("https://localhost:8080/secret/share/create", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   credentials: "include",
@@ -269,7 +269,7 @@ export default function SecretRotationPage() {
 
       const cleaned = rotated.filter(Boolean);
 
-      await fetch("http://localhost:8080/secret/rotate-secret", {
+      await fetch("https://localhost:8080/secret/rotate-secret", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -278,7 +278,7 @@ export default function SecretRotationPage() {
 
       alert("DEK rotation completed");
 
-      const res = await fetch("http://localhost:8080/secret/byThisUser", {
+      const res = await fetch("https://localhost:8080/secret/byThisUser", {
         credentials: "include",
       });
 

@@ -13,7 +13,7 @@ export default function TwoFactorPage() {
     const tempToken = localStorage.getItem("tempToken");
 
     try {
-      const res = await fetch("http://localhost:8080/auth/verify-2fa", {
+      const res = await fetch("https://localhost:8080/auth/verify-2fa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

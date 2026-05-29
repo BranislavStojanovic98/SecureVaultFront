@@ -3,18 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { deriveMasterKey } from "../crypto/DeriveMasterKey";
 import { useAuth } from "../AuthContext";
 import { generatePasswordVerifier } from "../crypto/AuthService";
+import { base64FromBuffer } from "../crypto/Encoding";
 import "./CreateSecretPage.css";
-
-function base64FromBuffer(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
-  return btoa(binary);
-}
 
 
 export default function CreateSecretPage() {

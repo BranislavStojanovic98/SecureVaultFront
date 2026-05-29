@@ -1,34 +1,33 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { decryptData, encryptData } from "../crypto/VaultCrypto";
-import { deriveMasterKey } from "../crypto/DeriveMasterKey";
 import { importPublicKey } from "../crypto/CryptoService";
+import { base64FromBuffer, pemToArrayBuffer } from "../crypto/Encoding";
+import { unlockVaultKey } from "../crypto/UnlockVaultKey";
+import { deriveVaultKek } from "../crypto/DeriveVaultKek";
 import "./SecretRotationPage.css";
 
 
-function base64FromBuffer(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
-  return btoa(binary);
-}
-
 function toBytes(input) {
   if (input instanceof Uint8Array) return input;
+
   if (Array.isArray(input)) return new Uint8Array(input);
+
   if (!input) throw new Error("Missing byte field");
+
   if (typeof input === "string") {
+
     const trimmed = input.trim();
+
     if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+
       const binary = atob(trimmed);
       const bytes = new Uint8Array(binary.length);
+
       for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
+
       return bytes;
     }
     throw new Error("Invalid string format (not base64)");
@@ -36,21 +35,6 @@ function toBytes(input) {
   throw new Error("Unsupported format" + typeof request);
 }
 
-function pemToArrayBuffer(pem) {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes.buffer;
-}
 
 export default function SecretRotationPage() {
   const [secrets, setSecrets] = useState([]);
@@ -78,45 +62,10 @@ export default function SecretRotationPage() {
 
   async function unlockVault(file) {
     try {
-      const masterPassword = prompt("Enter master password");
+      
+      const username = localStorage.getItem("username");
+      const privateKeyPem = await unlockVaultKey(file, username);
 
-      const saltRes = await fetch("https://localhost:8080/auth/salt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: localStorage.getItem("username") }),
-        credentials: "include",
-      });
-
-      const saltData = await saltRes.json();
-      const salt = toBytes(saltData.salt);
-
-      const enc = new TextEncoder();
-
-      const keyMaterial = await crypto.subtle.importKey(
-        "raw",
-        enc.encode(masterPassword),
-        "PBKDF2",
-        false,
-        ["deriveKey"]
-      );
-
-      const aesVaultKey = await crypto.subtle.deriveKey(
-        {
-          name: "PBKDF2",
-          salt,
-          iterations: 600000,
-          hash: "SHA-256",
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["decrypt"]
-      );
-
-      const text = await file.text();
-      const vault = JSON.parse(text);
-
-      const privateKeyPem = await decryptData(vault, aesVaultKey);
       setVaultKey(privateKeyPem);
 
       alert("Vault unlocked");
@@ -136,19 +85,8 @@ export default function SecretRotationPage() {
       setLoading(true);
 
       const username = localStorage.getItem("username");
-      const masterPassword = prompt("Enter master password again");
-
-      const saltRes = await fetch("https://localhost:8080/auth/salt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-        credentials: "include",
-      });
-
-      const saltData = await saltRes.json();
-      const salt = toBytes(saltData.salt);
-
-      const kek = await deriveMasterKey(masterPassword, salt);
+      
+      const kek = await deriveVaultKek(username);
 
       const privateKey = await crypto.subtle.importKey(
         "pkcs8",
@@ -163,16 +101,16 @@ export default function SecretRotationPage() {
           try {
             let dekRaw;
 
-            const wrappedDek = s.wrappedDek;
-            const wrappedDekIv = s.wrappedDekIv;
+            if (s.wrappedDek && s.wrappedDekIv) {
 
-            if (wrappedDek && wrappedDekIv) {
               dekRaw = await crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: toBytes(wrappedDekIv) },
+                { name: "AES-GCM", iv: toBytes(s.wrappedDekIv) },
                 kek,
-                toBytes(wrappedDek)
+                toBytes(s.wrappedDek)
               );
+
             } else if (s.encrypted_key || s.encryptedKey) {
+
               const rsa = s.encrypted_key ?? s.encryptedKey;
 
               dekRaw = await crypto.subtle.decrypt(
@@ -180,6 +118,7 @@ export default function SecretRotationPage() {
                 privateKey,
                 toBytes(rsa)
               );
+
             } else {
               console.log("BAD SECRET ROW:", s);
               throw new Error("No DEK format found");

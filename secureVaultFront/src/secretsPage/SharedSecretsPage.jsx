@@ -1,35 +1,12 @@
 import { useEffect, useState } from "react";
-import { decryptData } from "../crypto/VaultCrypto";
-import api from "../crypto/axios";
+
+import { unlockVaultKey } from "../crypto/UnlockVaultKey";
+import { logDecrypt } from "../crypto/Audit";
+
+
 import "./MySecretsPage.css"
+import { decryptSecretCrypto } from "../crypto/DecryptSecretService";
 
-function base64ToUint8(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
-}
-
-
-function pemToArrayBuffer(pem) {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes.buffer;
-}
 
 export default function MySecretsPage() {
   
@@ -41,14 +18,14 @@ export default function MySecretsPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-const secretsPerPage = 10;
+  const secretsPerPage = 10;
 
-const indexOfLastSecret = currentPage * secretsPerPage;
-const indexOfFirstSecret = indexOfLastSecret - secretsPerPage;
+  const indexOfLastSecret = currentPage * secretsPerPage;
+  const indexOfFirstSecret = indexOfLastSecret - secretsPerPage;
 
-const currentSecrets = secrets.slice(indexOfFirstSecret, indexOfLastSecret);
+  const currentSecrets = secrets.slice(indexOfFirstSecret, indexOfLastSecret);
 
-const totalPages = Math.ceil(secrets.length / secretsPerPage);
+  const totalPages = Math.ceil(secrets.length / secretsPerPage);
 
   useEffect(() => {
     async function fetchSecrets() {
@@ -69,56 +46,12 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
     fetchSecrets();
   }, []);
 
-  async function readVault(file) {
-    const text = await file.text();
-    return JSON.parse(text);
-  }
-
   async function unlockVault(file) {
     try {
-      const masterPassword = prompt("Enter master password");
+      const username = localStorage.getItem("username");
+      const privateKeyPem = await unlockVaultKey(file, username);
 
-      const saltRes = await fetch("https://localhost:8080/auth/salt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: localStorage.getItem("username"),
-        }),
-        credentials: "include",
-      });
-
-      const saltData = await saltRes.json();
-
-      const salt = base64ToUint8(saltData.salt);
-
-      const enc = new TextEncoder();
-
-      const keyMaterial = await crypto.subtle.importKey(
-        "raw",
-        enc.encode(masterPassword),
-        "PBKDF2",
-        false,
-        ["deriveKey"]
-      );
-
-      const aesVaultKey = await crypto.subtle.deriveKey(
-        {
-          name: "PBKDF2",
-          salt,
-          iterations: 600000,
-          hash: "SHA-256",
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["decrypt"]
-      );
-
-      const vault = await readVault(file);
-
-      const privateKeyRaw = await decryptData(vault, aesVaultKey);
-
-      setVaultKey(privateKeyRaw);
+      setVaultKey(privateKeyPem);
 
       alert("Vault unlocked");
     } catch (err) {
@@ -134,49 +67,14 @@ const totalPages = Math.ceil(secrets.length / secretsPerPage);
       return;
     }
 
-    const privateKey = await crypto.subtle.importKey(
-      "pkcs8",
-      pemToArrayBuffer(vaultKey),
-      {
-        name: "RSA-OAEP",
-        hash: "SHA-256",
-      },
-      false,
-      ["decrypt"]
-    );
-
-    const encryptedKeyBytes = base64ToUint8(secret.encryptedKey);
-
-    const aesKeyRaw = await crypto.subtle.decrypt(
-      { name: "RSA-OAEP" },
-      privateKey,
-      encryptedKeyBytes
-    );
-
-    const aesKey = await crypto.subtle.importKey(
-      "raw",
-      aesKeyRaw,
-      { name: "AES-GCM" },
-      false,
-      ["decrypt"]
-    );
-
-    const plaintext = await decryptData(
-      {
-        iv: secret.iv,
-        data: secret.encryptedBlob,
-      },
-      aesKey
-    );
+    const plaintext = await decryptSecretCrypto(secret, vaultKey);
 
     setDecryptedMap(prev => ({
       ...prev,
       [secret.id]: plaintext,
     }));
 
-    await api.post("/audit/decrypt", {
-      secretId: secret.id
-    });
+    await logDecrypt(secret.id);
 
   } catch (err) {
     console.error("Decrypt failed:", err);

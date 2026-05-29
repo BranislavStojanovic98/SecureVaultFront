@@ -1,4 +1,4 @@
-import { data, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./Setup2FAPage.css";
 
 export default function Setup2FAPage() {

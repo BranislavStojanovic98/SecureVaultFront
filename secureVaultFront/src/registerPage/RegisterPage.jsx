@@ -136,7 +136,6 @@ export default function RegisterPage() {
       if (data.totpQrCode) {
         localStorage.setItem("qrCode", data.totpQrCode);
         localStorage.setItem("username", data.username);
-        //localStorage.setItem("salt", saltBase64);
 
         const derivedKey = await deriveMasterKey(
           form.masterPassword,

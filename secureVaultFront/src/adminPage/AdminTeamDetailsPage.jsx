@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../crypto/AuthFetch";
+import { unlockVaultKey } from "../crypto/UnlockVaultKey";
 import "./AdminTeamDetailsPage.css";
 
 export default function AdminTeamDetailsPage() {
@@ -10,6 +11,7 @@ export default function AdminTeamDetailsPage() {
   const [team, setTeam] = useState(null);
   const [members, setMembers] = useState([]);
   const [users, setUsers] = useState([]);
+  const [vaultKey, setVaultKey] = useState(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -36,7 +38,27 @@ export default function AdminTeamDetailsPage() {
       .then((data) => setUsers(data));
   }, [teamId]);
 
+  async function unlockVault(file) {
+        try {
+    
+          const username = localStorage.getItem("username");
+          const privateKeyPem = await unlockVaultKey(file, username);
+    
+          setVaultKey(privateKeyPem);
+    
+          alert("Vault unlocked");
+        } catch (err) {
+          console.error(err);
+          alert("Failed to unlock vault");
+        }
+    };
+
   const addMember = async () => {
+    if(!vaultKey) {
+      alert("Upload vault first");
+      return;
+    }
+
     if (!selectedUserId) return;
 
     await fetch(`https://localhost:8080/teamMember/addmember`, {
@@ -61,6 +83,11 @@ export default function AdminTeamDetailsPage() {
   };
 
   const removeMember = async (userId) => {
+    if(!vaultKey) {
+      alert("Upload vault first");
+      return;
+    }
+
     await fetch(`https://localhost:8080/teamMember/remove`, {
       method: "DELETE",
       headers: {
@@ -77,27 +104,32 @@ export default function AdminTeamDetailsPage() {
   };
 
   const updateMemberRole = async () => {
-  if (!editingMember) return;
+    if(!vaultKey) {
+      alert("Upload vault first");
+      return;
+    }
 
-  await fetch(`https://localhost:8080/teamMember/edit`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({
-      teamId: Number(teamId),
-      userId: editingMember.userId,
-      role: editRole,
-    }),
-  });
+    if (!editingMember) return;
 
-  setShowEditModal(false);
-  setEditingMember(null);
-  setEditRole("MEMBER");
+    await fetch(`https://localhost:8080/teamMember/edit`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        teamId: Number(teamId),
+        userId: editingMember.userId,
+        role: editRole,
+      }),
+    });
 
-  refreshMembers();
-};
+    setShowEditModal(false);
+    setEditingMember(null);
+    setEditRole("MEMBER");
+
+    refreshMembers();
+  };
 
   const refreshMembers = () => {
     authFetch(`https://localhost:8080/teamMember/getTeammatesFor/${teamId}`)
@@ -111,6 +143,13 @@ export default function AdminTeamDetailsPage() {
     <div className="team-details-container">
       <div className="team-details-card">
         <h1>🧩 {team.name}</h1>
+
+        <input
+          className="file-input"
+          type="file"
+          accept=".vault,application/json"
+          onChange={(e) => unlockVault(e.target.files[0])}
+        />
 
         <h3>👥 Members</h3>
 

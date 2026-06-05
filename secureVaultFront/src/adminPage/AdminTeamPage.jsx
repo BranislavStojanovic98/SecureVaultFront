@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../crypto/AuthFetch";
+import { unlockVaultKey } from "../crypto/UnlockVaultKey";
 import "./AdminTeamPage.css";
 
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [vaultKey, setVaultKey] = useState(null);
   const [newTeamName, setNewTeamName] = useState("");
 
   const navigate = useNavigate();
@@ -23,30 +25,57 @@ export default function AdminTeamsPage() {
       .catch(() => navigate("/"));
   }, [navigate]);
 
+  async function unlockVault(file) {
+      try {
+  
+        const username = localStorage.getItem("username");
+        const privateKeyPem = await unlockVaultKey(file, username);
+  
+        setVaultKey(privateKeyPem);
+  
+        alert("Vault unlocked");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to unlock vault");
+      }
+  };
+
   const createTeam = async () => {
-  if (!newTeamName.trim()) return;
 
-  const response = await fetch(`https://localhost:8080/team`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({
-      name: newTeamName,
-      createdById: localStorage.getItem("userId"),
-    }),
-  });
+    if(!vaultKey) {
+      alert("Upload vault first");
+      return;
+    }
 
-  const createdTeam = await response.json();
+    if (!newTeamName.trim()) return;
 
-  setShowCreateModal(false);
-  setNewTeamName("");
+    const response = await fetch(`https://localhost:8080/team`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        name: newTeamName,
+        createdById: localStorage.getItem("userId"),
+      }),
+    });
 
-  navigate(`/admin/teams/${createdTeam.id}`);
-};
+    const createdTeam = await response.json();
+
+    setShowCreateModal(false);
+    setNewTeamName("");
+
+    navigate(`/admin/teams/${createdTeam.id}`);
+  };
 
 const deleteTeam = async (teamId) => {
+
+  if(!vaultKey) {
+    alert("Upload vault first");
+    return;
+  }
+
   const confirmed = window.confirm(
     "Are you sure you want to delete this team?"
   );
@@ -71,6 +100,13 @@ const deleteTeam = async (teamId) => {
     <div className="teams-container">
       <div className="teams-card">
         <h1>🧩 Teams Overview</h1>
+
+        <input
+          className="file-input"
+          type="file"
+          accept=".vault,application/json"
+          onChange={(e) => unlockVault(e.target.files[0])}
+        />
 
         <div className="teams-list">
           {teams.map((team) => (

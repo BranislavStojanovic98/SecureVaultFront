@@ -5,7 +5,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// request interceptor
 api.interceptors.request.use((config) => {
   config.withCredentials = true;
   return config;

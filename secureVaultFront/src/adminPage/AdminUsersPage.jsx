@@ -1,10 +1,12 @@
 import "./AdminUsersPage.css";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { unlockVaultKey } from "../crypto/UnlockVaultKey";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [editingUserId, setEditingUserId] = useState(null);
+  const [vaultKey, setVaultKey] = useState(null);
   const [formData, setFormData] = useState({
     username: "",
     role: "",
@@ -13,6 +15,12 @@ export default function AdminUsersPage() {
   const navigate = useNavigate();
 
   const activateUser = async (id) => {
+
+    if(!vaultKey) {
+      alert("Upload vault first");
+      return;
+    }
+
   await fetch(`https://localhost:8080/user/activate/${id}`, {
     method: "PUT",
     credentials: "include",
@@ -21,7 +29,28 @@ export default function AdminUsersPage() {
   fetchUsers();
 };
 
+async function unlockVault(file) {
+    try {
+
+      const username = localStorage.getItem("username");
+      const privateKeyPem = await unlockVaultKey(file, username);
+
+      setVaultKey(privateKeyPem);
+
+      alert("Vault unlocked");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to unlock vault");
+    }
+};
+
 const deactivateUser = async (id) => {
+
+  if(!vaultKey) {
+    alert("Upload vault first");
+    return;
+  }
+
   await fetch(`https://localhost:8080/user/deactivate/${id}`, {
     method: "PUT",
     credentials: "include",
@@ -31,6 +60,12 @@ const deactivateUser = async (id) => {
 };
 
 const freezeUser = async (id) => {
+
+  if(!vaultKey) {
+    alert("Upload vault first");
+    return;
+  }
+
   await fetch(`https://localhost:8080/user/freeze/${id}`, {
     method: "PUT",
     credentials: "include",
@@ -40,6 +75,12 @@ const freezeUser = async (id) => {
 };
 
 const unfreezeUser = async (id) => {
+
+  if(!vaultKey) {
+    alert("Upload vault first");
+    return;
+  }
+
   await fetch(`https://localhost:8080/user/unfreeze/${id}`, {
     method: "PUT",
     credentials: "include",
@@ -128,6 +169,13 @@ const unfreezeUser = async (id) => {
     <div className="admin-users-container">
       <div className="admin-users-card">
         <h1>👥 User Management</h1>
+
+        <input
+          className="file-input"
+          type="file"
+          accept=".vault,application/json"
+          onChange={(e) => unlockVault(e.target.files[0])}
+        />
 
         <div className="user-list">
           {users.map((user) => (
